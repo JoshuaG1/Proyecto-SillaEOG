@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gantt EOGo - Semestre 1 (días hábiles)</title>
+<style>
+:root{
+  --day-width:18px; --row-height:42px; --label-width:420px;
+  --weekend:#eeeeF3; --grid:#ececf1;
+  --jose:#6f42c1; --joshua:#0d6efd; --ambos:#198754;
+  --junta:#fd7e14; --seminario:#dc3545; --section:#ececf5; --muted:#6c757d;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f4f7;color:#25252b}
+.page{padding:24px}
+.card{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08);overflow:hidden}
+.header{padding:22px 24px 16px;border-bottom:1px solid var(--grid)}
+.header h1{margin:0 0 6px;font-size:26px}
+.header p{margin:0;color:var(--muted);font-size:14px}
+.roles{margin-top:10px;font-size:13px;line-height:1.55}
+.notice{margin-top:12px;padding:10px 12px;background:#f8f9fb;border-left:4px solid #495057;font-size:12px}
+.legend{display:flex;flex-wrap:wrap;gap:12px 18px;margin-top:16px;font-size:13px}
+.legend-item{display:flex;align-items:center;gap:7px}.dot{width:12px;height:12px;border-radius:3px}
+.gantt-wrap{overflow-x:auto}.gantt{display:grid;grid-template-columns:var(--label-width) auto;min-width:max-content}
+.left-head{position:sticky;left:0;z-index:20;background:#fff;border-right:1px solid #d9d9df;border-bottom:1px solid #d9d9df;padding:12px 14px;font-weight:700}
+.timeline-head{position:relative;height:68px;background:#fff;border-bottom:1px solid #d9d9df}
+.months{height:28px;position:relative;border-bottom:1px solid #d9d9df}
+.month{position:absolute;top:0;height:28px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border-right:1px solid #d9d9df;background:#fafafe;text-transform:capitalize}
+.days{position:relative;height:40px}
+.day-label{position:absolute;top:0;height:40px;width:var(--day-width);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#555;border-right:1px solid #eeeef2}
+.day-label.weekend{background:var(--weekend);color:#999}
+.day-label .num{font-weight:700;font-size:11px}.day-label .dow{font-size:8px;color:#777}
+.task-label{
+  position:sticky;
+  left:0;
+  z-index:15;
+  min-height:56px;
+  height:auto;
+  background:#fff;
+  border-right:1px solid #d9d9df;
+  border-bottom:1px solid #efeff3;
+  padding:8px 10px 8px 14px;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:center;
+  overflow:visible;
+}
+.task-label .name{
+  font-size:13px;
+  font-weight:600;
+  line-height:1.22;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+.task-label .meta{
+  font-size:10px;
+  color:var(--muted);
+  white-space:nowrap;
+  text-align:right;
+  align-self:center;
+}
+.task-row{
+  position:relative;
+  min-height:56px;
+  height:auto;
+  border-bottom:1px solid #efeff3;
+  background:#fff;
+  overflow:visible;
+}
+.grid-day{position:absolute;top:0;bottom:0;width:var(--day-width);border-right:1px solid #f0f0f3}.grid-day.weekend{background:var(--weekend)}
+.bar{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  height:24px;
+  border-radius:6px;
+  display:flex;
+  align-items:center;
+  padding:0 8px;
+  color:white;
+  font-size:11px;
+  font-weight:700;
+  overflow:hidden;
+  white-space:nowrap;
+  box-shadow:0 2px 5px rgba(0,0,0,.14);
+}
+.bar.jose{background:var(--jose)}.bar.joshua{background:var(--joshua)}.bar.ambos{background:var(--ambos)}
+.milestone{
+  position:absolute;
+  top:50%;
+  width:18px;
+  height:18px;
+  transform:translateY(-50%) rotate(45deg);
+  border-radius:2px;
+  box-shadow:0 2px 4px rgba(0,0,0,.18);
+  z-index:5;
+}
+.milestone.junta{background:var(--junta)}.milestone.seminario{background:var(--seminario)}
+.milestone-label{
+  position:absolute;
+  top:50%;
+  font-size:10px;
+  font-weight:700;
+  white-space:nowrap;
+  transform:translate(14px,-50%);
+}
+.section{
+  grid-column:1/3;
+  min-height:52px;
+  height:auto;
+  display:grid;
+  grid-template-columns:var(--label-width) auto;
+  background:var(--section);
+  border-bottom:1px solid #dadae4;
+}
+.section .s-left{
+  position:sticky;
+  left:0;
+  z-index:18;
+  background:var(--section);
+  padding:10px 14px;
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  border-right:1px solid #d9d9df;
+  line-height:1.25;
+  display:flex;
+  align-items:center;
+}
+.section .s-right{
+  background:var(--section);
+}
+.footer{padding:14px 24px 20px;font-size:12px;color:var(--muted);border-top:1px solid var(--grid)}
+@media(max-width:800px){:root{--label-width:300px;--day-width:16px}.page{padding:10px}}
+
+.controls{
+  position:fixed;
+  top:14px;
+  right:14px;
+  z-index:9999;
+  display:flex;
+  gap:8px;
+}
+.controls button{
+  border:0;
+  border-radius:8px;
+  padding:10px 14px;
+  font-weight:700;
+  cursor:pointer;
+  box-shadow:0 3px 10px rgba(0,0,0,.15);
+}
+.controls .capture-btn{background:#0d6efd;color:#fff}
+.controls .print-btn{background:#25252b;color:#fff}
+
+/* En modo captura, el contenido deja de estar dentro de un scroll horizontal.
+   Así "Capture full size screenshot" puede ver TODO el ancho del Gantt. */
+body.capture-mode{
+  overflow:visible;
+  background:#f3f4f7;
+}
+body.capture-mode .page{
+  width:max-content;
+  min-width:100%;
+}
+body.capture-mode .card{
+  width:max-content;
+  min-width:100%;
+}
+body.capture-mode .gantt-wrap{
+  overflow:visible !important;
+  width:max-content;
+}
+body.capture-mode .controls{
+  display:none;
+}
+
+/* Impresión / Guardar como PDF */
+@media print{
+  @page{
+    size:A3 landscape;
+    margin:8mm;
+  }
+  body{
+    background:#fff;
+    overflow:visible !important;
+  }
+  .controls{
+    display:none !important;
+  }
+  .page{
+    padding:0;
+    width:max-content;
+  }
+  .card{
+    box-shadow:none;
+    border-radius:0;
+    width:max-content;
+  }
+  .gantt-wrap{
+    overflow:visible !important;
+    width:max-content;
+  }
+}
+
+
+.task-label,
+.task-row,
+.section{
+  break-inside:avoid;
+  page-break-inside:avoid;
+}
+@media print{
+  .task-label,
+  .task-row,
+  .section{
+    break-inside:avoid !important;
+    page-break-inside:avoid !important;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button class="capture-btn" onclick="activarCaptura()">📷 Vista completa para captura</button>
+  <button class="print-btn" onclick="window.print()">🖨️ Guardar / imprimir PDF</button>
+</div>
+
+<div class="page"><div class="card">
+<div class="header">
+  <h1>Diagrama de Gantt — EOGo</h1>
+  <p>Semestre 1 · 1 de septiembre al 1 de diciembre de 2026</p>
+  <div class="roles"><strong>José:</strong> electrónica y protocolos de comunicación · <strong>Joshua:</strong> programación y diseño · <strong>Ambos:</strong> experimentación, integración, validación y documentación.</div>
+  <div class="notice"><strong>Criterios:</strong> las tareas pueden desarrollarse en paralelo; todas las actividades comienzan y terminan en días hábiles. Los requerimientos ergonómicos se definen desde el inicio y el protocolo experimental incluye una metodología para discriminar movimientos oculares involuntarios.</div>
+  <div class="legend">
+    <div class="legend-item"><span class="dot" style="background:var(--jose)"></span>José</div>
+    <div class="legend-item"><span class="dot" style="background:var(--joshua)"></span>Joshua</div>
+    <div class="legend-item"><span class="dot" style="background:var(--ambos)"></span>Ambos</div>
+    <div class="legend-item"><span class="dot" style="background:var(--junta)"></span>Junta con el doctor</div>
+    <div class="legend-item"><span class="dot" style="background:var(--seminario)"></span>Seminario interno</div>
+  </div>
+</div>
+<div class="gantt-wrap"><div class="gantt" id="gantt">
+  <div class="left-head">Actividad / Responsable</div>
+  <div class="timeline-head" id="timelineHead"><div class="months" id="months"></div><div class="days" id="days"></div></div>
+</div></div>
+<div class="footer">Las tareas pueden ejecutarse en paralelo. Los fines de semana se muestran únicamente como referencia temporal.</div>
+</div></div>
+
+<script>
+const START=new Date("2026-09-01T00:00:00"), END=new Date("2026-12-01T00:00:00"), DAY_MS=86400000;
+const tasks=[
+
+{section:"Requerimientos iniciales, adquisición y acondicionamiento EOG"},
+{name:"Definición de requerimientos ergonómicos",start:"2026-09-07",end:"2026-09-11",owner:"Joshua",cls:"joshua"},
+{name:"Selección y adquisición inicial de componentes",start:"2026-09-07",end:"2026-09-09",owner:"Ambos",cls:"ambos"},
+{name:"Pruebas de adquisición",start:"2026-09-10",end:"2026-09-18",owner:"Ambos",cls:"ambos"},
+{name:"Diseño preliminar de filtros",start:"2026-09-14",end:"2026-09-18",owner:"José",cls:"jose"},
+{name:"Implementación y ajuste de filtros",start:"2026-09-21",end:"2026-10-02",owner:"José",cls:"jose"},
+{name:"Análisis y visualización de señal filtrada",start:"2026-09-21",end:"2026-10-02",owner:"Joshua",cls:"joshua"},
+
+{section:"Metodología y protocolo experimental EOG"},
+{name:"Definición de metodología y protocolo experimental",start:"2026-09-28",end:"2026-10-02",owner:"Ambos",cls:"ambos"},
+{name:"Caracterización de movimientos oculares involuntarios",start:"2026-10-05",end:"2026-10-09",owner:"Ambos",cls:"ambos"},
+{name:"Definición de criterios para discriminar movimientos voluntarios e involuntarios",start:"2026-10-05",end:"2026-10-16",owner:"Joshua",cls:"joshua"},
+{name:"Validación de la metodología de discriminación",start:"2026-10-12",end:"2026-10-16",owner:"Ambos",cls:"ambos"},
+{name:"Generación de dataset EOG etiquetado",start:"2026-10-19",end:"2026-10-23",owner:"Ambos",cls:"ambos"},
+
+{section:"Diseño del producto y ergonomía"},
+{name:"Diseño conceptual del producto final",start:"2026-09-14",end:"2026-09-25",owner:"Joshua",cls:"joshua"},
+{name:"Modelado 3D de lentes / soporte de electrodos",start:"2026-10-05",end:"2026-10-16",owner:"Joshua",cls:"joshua"},
+{name:"Prototipo físico preliminar y prueba de ajuste",start:"2026-10-19",end:"2026-10-30",owner:"Ambos",cls:"ambos"},
+{name:"Ajustes ergonómicos y diseño 3D final",start:"2026-11-02",end:"2026-11-13",owner:"Joshua",cls:"joshua"},
+
+{section:"Procesamiento, comunicación e integración"},
+{name:"Caracterización de comandos EOG",start:"2026-10-19",end:"2026-10-30",owner:"Joshua",cls:"joshua"},
+{name:"Pruebas eléctricas complementarias para comandos",start:"2026-10-19",end:"2026-10-30",owner:"José",cls:"jose"},
+{name:"Desarrollo del algoritmo de detección y clasificación",start:"2026-11-02",end:"2026-11-13",owner:"Joshua",cls:"joshua"},
+{name:"Definición del protocolo de comunicación PC–microcontrolador",start:"2026-11-02",end:"2026-11-06",owner:"José",cls:"jose"},
+{name:"Implementación y pruebas del enlace de comunicación",start:"2026-11-09",end:"2026-11-13",owner:"José",cls:"jose"},
+{name:"Procesamiento en tiempo real",start:"2026-11-16",end:"2026-11-20",owner:"Joshua",cls:"joshua"},
+{name:"Integración comunicación + clasificación",start:"2026-11-16",end:"2026-11-20",owner:"Ambos",cls:"ambos"},
+{name:"Integración con microcontrolador y prueba de concepto",start:"2026-11-23",end:"2026-11-27",owner:"Ambos",cls:"ambos"},
+{name:"Validación y resultados",start:"2026-11-23",end:"2026-12-01",owner:"Ambos",cls:"ambos"},
+{name:"Documentación final",start:"2026-09-01",end:"2026-12-01",owner:"Ambos",cls:"ambos"},
+
+{section:"Seguimiento académico"},
+{name:"Junta 1",date:"2026-09-01",type:"junta"},
+{name:"Seminario 1",date:"2026-09-08",type:"seminario"},
+{name:"Junta 2",date:"2026-09-15",type:"junta"},
+{name:"Seminario 2",date:"2026-09-22",type:"seminario"},
+{name:"Junta 3",date:"2026-09-29",type:"junta"},
+{name:"Seminario 3",date:"2026-10-06",type:"seminario"},
+{name:"Junta 4",date:"2026-10-13",type:"junta"},
+{name:"Seminario 4",date:"2026-10-20",type:"seminario"},
+{name:"Junta 5",date:"2026-10-27",type:"junta"},
+{name:"Seminario 5",date:"2026-11-03",type:"seminario"},
+{name:"Junta 6",date:"2026-11-10",type:"junta"},
+{name:"Seminario 6",date:"2026-11-17",type:"seminario"},
+{name:"Junta 7",date:"2026-11-24",type:"junta"},
+{name:"Seminario 7 / Cierre",date:"2026-12-01",type:"seminario"}
+]
+const totalDays=Math.round((END-START)/DAY_MS)+1,gantt=document.getElementById("gantt"),months=document.getElementById("months"),days=document.getElementById("days");
+function dayWidth(){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--day-width"))}
+function diffDays(s){return Math.round((new Date(s+"T00:00:00")-START)/DAY_MS)}
+function isWeekend(d){return d.getDay()===0||d.getDay()===6}
+function fmtDate(s){return new Date(s+"T00:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"short"})}
+function buildHeader(){
+ const w=dayWidth(); document.getElementById("timelineHead").style.width=(totalDays*w)+"px";months.style.width=(totalDays*w)+"px";days.style.width=(totalDays*w)+"px";
+ let current=null,start=0;const groups=[];
+ for(let i=0;i<totalDays;i++){const d=new Date(START.getTime()+i*DAY_MS),el=document.createElement("div");el.className="day-label"+(isWeekend(d)?" weekend":"");el.style.left=(i*w)+"px";el.innerHTML=`<span class="num">${d.getDate()}</span><span class="dow">${["D","L","M","X","J","V","S"][d.getDay()]}</span>`;days.appendChild(el);
+ const key=`${d.getFullYear()}-${d.getMonth()}`;if(current===null){current=key;start=i}else if(key!==current){groups.push({start,end:i-1});current=key;start=i}if(i===totalDays-1)groups.push({start,end:i})}
+ groups.forEach(g=>{const d=new Date(START.getTime()+g.start*DAY_MS),m=document.createElement("div");m.className="month";m.style.left=(g.start*w)+"px";m.style.width=((g.end-g.start+1)*w)+"px";m.textContent=d.toLocaleDateString("es-MX",{month:"long",year:"numeric"});months.appendChild(m)})
+}
+function addGrid(row){const w=dayWidth();row.style.width=(totalDays*w)+"px";for(let i=0;i<totalDays;i++){const d=new Date(START.getTime()+i*DAY_MS),c=document.createElement("div");c.className="grid-day"+(isWeekend(d)?" weekend":"");c.style.left=(i*w)+"px";row.appendChild(c)}}
+function addSection(title){const sec=document.createElement("div");sec.className="section";sec.innerHTML=`<div class="s-left">${title}</div><div class="s-right"></div>`;gantt.appendChild(sec)}
+function addTask(t){const label=document.createElement("div");label.className="task-label";const meta=t.date?fmtDate(t.date):`${t.owner} · ${fmtDate(t.start)} – ${fmtDate(t.end)}`;label.innerHTML=`<div class="name">${t.name}</div><div class="meta">${meta}</div>`;gantt.appendChild(label);
+ const row=document.createElement("div");row.className="task-row";addGrid(row);const w=dayWidth();
+ if(t.date){const x=diffDays(t.date)*w+w/2-9,mark=document.createElement("div");mark.className=`milestone ${t.type}`;mark.style.left=x+"px";row.appendChild(mark);const ml=document.createElement("div");ml.className="milestone-label";ml.style.left=(x+4)+"px";ml.textContent=t.type==="junta"?"Junta":"Seminario";row.appendChild(ml)}
+ else{const s=diffDays(t.start),e=diffDays(t.end),bar=document.createElement("div");bar.className=`bar ${t.cls}`;bar.style.left=(s*w+2)+"px";bar.style.width=((e-s+1)*w-4)+"px";bar.textContent=t.name;bar.title=`${t.name}\n${t.owner}\n${fmtDate(t.start)} – ${fmtDate(t.end)}`;row.appendChild(bar)}
+ gantt.appendChild(row)}
+buildHeader();tasks.forEach(t=>t.section?addSection(t.section):addTask(t));
+
+function activarCaptura(){
+  document.body.classList.add("capture-mode");
+  window.scrollTo(0,0);
+
+  alert(
+    "Modo captura activado.\n\n" +
+    "Ahora abre DevTools y usa Ctrl + Shift + P → Capture full size screenshot.\n" +
+    "La captura incluirá todo el ancho del Gantt.\n\n" +
+    "Presiona ESC para volver a la vista normal."
+  );
+}
+
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape"){
+    document.body.classList.remove("capture-mode");
+  }
+});
+
+</script>
+</body></html>
